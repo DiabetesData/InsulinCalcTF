@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 1rem;
+        }
+
+        .container {
+            max-width: 300px;
+            margin: 0 auto;
+            /* center on larger screens */
+            border: 1px solid #ddd;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .section {
+            margin-bottom: 1rem;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: auto 100px;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        label {
+            text-align: left;
+            margin: 0;
+        }
+
+        input,
+        select {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 0.3rem;
+            text-align: right;
+            text-align-last: right;
+        }
+
+        /* Remove the right alignment from select text */
+        select {
+            text-align: left;
+        }
+
+        .calculated {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="section">
+            <div class="field-row">
+                <label for="formula-select">Tube Feed Formulation</label>
+                <select id="formula-select">
+                    <option value="custom">Custom</option>
+                    <option value="169.4">Jevity 1.2 Cal</option>
+                    <option value="215.7">Jevity 1.5 Cal</option>
+                    <option value="203.6">Osmolite 1.5 Cal</option>
+                    <option value="161">Nepro Carbsteady</option>
+                    <option value="133">Glucerna 1.5</option>
+                    <option value="218.5">TwoCal</option>
+                    <option value="130">Promote</option>
+                    <option value="138.3">Promote w/Fiber</option>
+                    <option value="180.3">Perative</option>
+                    <option value="172.4">Pivot 1.5 Cal</option>
+                    <option value="110.6">Vital AF 1.2 Cal</option>
+                    <option value="112">Vital High Protein</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="field-row">
+                <label for="feed-type">Feed Type</label>
+                <select id="feed-type">
+                    <option value="continuous">Continuous</option>
+                    <option value="bolus">Bolus</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="continuous-fields" class="section" style="display:none;">
+            <div class="field-row">
+                <label for="carbs-per-liter">Carbs (g/L)</label>
+                <input type="number" id="carbs-per-liter" />
+            </div>
+
+            <div class="field-row">
+                <label for="rate">Rate (mL/hr)</label>
+                <input type="number" id="rate" />
+            </div>
+
+            <div class="field-row">
+                <label for="feed-hours">Feed Hrs</label>
+                <input type="number" id="feed-hours" value="24" />
+            </div>
+
+            <div class="field-row">
+                <label for="insulin-type">Insulin Type</label>
+                <select id="insulin-type">
+                    <option value="lispro">Lispro (4h)</option>
+                    <option value="regular">Regular (6h)</option>
+                </select>
+            </div>
+
+            <div class="field-row">
+                <label>Carbs/day</label>
+                <input type="text" id="carbs-per-day" class="calculated" readonly />
+            </div>
+
+            <div class="field-row">
+                <label>Carbs/segment</label>
+                <input type="text" id="carbs-per-segment" class="calculated" readonly />
+            </div>
+        </div>
+
+        <div id="bolus-fields" class="section" style="display:none;">
+            <div class="field-row">
+                <label for="bolus-carbs-per-liter">Carbs (g/L)</label>
+                <input type="number" id="bolus-carbs-per-liter" />
+            </div>
+
+            <div class="field-row">
+                <label for="bolus-volume">Vol (L)</label>
+                <input type="number" id="bolus-volume" step="0.1" />
+            </div>
+
+            <div class="field-row">
+                <label for="bolus-feeds-per-day">Feeds/Day</label>
+                <input type="number" id="bolus-feeds-per-day" />
+            </div>
+
+            <div class="field-row">
+                <label>Carbs/Bolus</label>
+                <input type="text" id="carbs-per-bolus" class="calculated" readonly />
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="field-row">
+                <label for="carbs-per-unit">g Carb/unit</label>
+                <input type="number" id="carbs-per-unit" step="0.1" value="15" />
+            </div>
+
+            <div class="field-row">
+                <label>Insulin Bolus</label>
+                <input type="text" id="insulin-bolus" class="calculated" readonly />
+            </div>
+
+            <div class="field-row">
+                <label>Total Daily</label>
+                <input type="text" id="total-daily-bolus-insulin" class="calculated" readonly />
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const formulaSelectEl = document.getElementById('formula-select');
+
+        const feedTypeEl = document.getElementById('feed-type');
+        const continuousFields = document.getElementById('continuous-fields');
+        const bolusFields = document.getElementById('bolus-fields');
+
+        const carbsPerLiterEl = document.getElementById('carbs-per-liter');
+        const rateEl = document.getElementById('rate');
+        const feedHoursEl = document.getElementById('feed-hours');
+        const insulinTypeEl = document.getElementById('insulin-type');
+
+        const carbsPerDayEl = document.getElementById('carbs-per-day');
+        const carbsPerSegmentEl = document.getElementById('carbs-per-segment');
+
+        const bolusCarbsPerLiterEl = document.getElementById('bolus-carbs-per-liter');
+        const bolusVolumeEl = document.getElementById('bolus-volume');
+        const bolusFeedsPerDayEl = document.getElementById('bolus-feeds-per-day');
+        const carbsPerBolusEl = document.getElementById('carbs-per-bolus');
+
+        const carbsPerUnitEl = document.getElementById('carbs-per-unit');
+        const insulinBolusEl = document.getElementById('insulin-bolus');
+        const totalDailyBolusInsulinEl = document.getElementById('total-daily-bolus-insulin');
+
+        function updateVisibility() {
+            const feedType = feedTypeEl.value;
+            continuousFields.style.display = feedType === 'continuous' ? 'block' : 'none';
+            bolusFields.style.display = feedType === 'bolus' ? 'block' : 'none';
+            applyFormulaSelection();
+            calculate();
+        }
+
+        function applyFormulaSelection() {
+            const selectedValue = formulaSelectEl.value;
+            const feedType = feedTypeEl.value;
+
+            if (selectedValue === 'custom') {
+                carbsPerLiterEl.disabled = false;
+                bolusCarbsPerLiterEl.disabled = false;
+            } else {
+                const formulaCarbs = parseFloat(selectedValue);
+                if (feedType === 'continuous') {
+                    carbsPerLiterEl.value = isNaN(formulaCarbs) ? '' : formulaCarbs;
+                    carbsPerLiterEl.disabled = true;
+                } else {
+                    bolusCarbsPerLiterEl.value = isNaN(formulaCarbs) ? '' : formulaCarbs;
+                    bolusCarbsPerLiterEl.disabled = true;
+                }
+            }
+
+            if (selectedValue !== 'custom') {
+                if (feedType === 'continuous') {
+                    bolusCarbsPerLiterEl.disabled = true;
+                    carbsPerLiterEl.disabled = true;
+                } else {
+                    carbsPerLiterEl.disabled = true;
+                    bolusCarbsPerLiterEl.disabled = true;
+                }
+            } else {
+                carbsPerLiterEl.disabled = (feedType !== 'continuous');
+                bolusCarbsPerLiterEl.disabled = (feedType !== 'bolus');
+            }
+        }
+
+        function calculate() {
+            const feedType = feedTypeEl.value;
+            const carbsPerUnit = parseFloat(carbsPerUnitEl.value) || 0;
+
+            let insulinBolus = 0;
+            let totalDailyBolusInsulin = '';
+
+            if (feedType === 'continuous') {
+                const cpl = parseFloat(carbsPerLiterEl.value) || 0;
+                const rate = parseFloat(rateEl.value) || 0;
+                const hours = parseFloat(feedHoursEl.value) || 0;
+                const insulinType = insulinTypeEl.value;
+
+                const carbsPerDay = cpl * (rate * 24 / 1000);
+                carbsPerDayEl.value = isNaN(carbsPerDay) ? '' : carbsPerDay.toFixed(1);
+
+                const segmentHours = (insulinType === 'lispro') ? 4 : 6;
+                const carbsSegment = carbsPerDay * (segmentHours / 24);
+                carbsPerSegmentEl.value = isNaN(carbsSegment) ? '' : carbsSegment.toFixed(1);
+
+                if (!isNaN(carbsSegment) && carbsSegment > 0 && carbsPerUnit > 0) {
+                    insulinBolus = carbsSegment / carbsPerUnit;
+                    insulinBolusEl.value = insulinBolus.toFixed(2);
+                } else {
+                    insulinBolusEl.value = '';
+                }
+
+                const bolusCount = Math.floor(hours / segmentHours);
+                if (bolusCount > 0 && insulinBolus > 0) {
+                    totalDailyBolusInsulin = (insulinBolus * bolusCount).toFixed(2);
+                }
+
+                carbsPerBolusEl.value = '';
+
+            } else {
+                const bolusCPL = parseFloat(bolusCarbsPerLiterEl.value) || 0;
+                const bolusVol = parseFloat(bolusVolumeEl.value) || 0;
+                const bolusFeedsPerDay = parseFloat(bolusFeedsPerDayEl.value) || 0;
+
+                const bolusCarbs = bolusCPL * bolusVol;
+                carbsPerBolusEl.value = (isNaN(bolusCarbs) || bolusCarbs === 0) ? '' : bolusCarbs.toFixed(1);
+
+                carbsPerDayEl.value = '';
+                carbsPerSegmentEl.value = '';
+
+                if (bolusCarbs > 0 && carbsPerUnit > 0) {
+                    insulinBolus = bolusCarbs / carbsPerUnit;
+                    insulinBolusEl.value = insulinBolus.toFixed(2);
+                } else {
+                    insulinBolusEl.value = '';
+                }
+
+                if (bolusFeedsPerDay > 0 && insulinBolus > 0) {
+                    totalDailyBolusInsulin = (insulinBolus * bolusFeedsPerDay).toFixed(2);
+                }
+            }
+
+            totalDailyBolusInsulinEl.value = totalDailyBolusInsulin;
+        }
+
+        // Event listeners
+        [formulaSelectEl, feedTypeEl, carbsPerLiterEl, rateEl, feedHoursEl, insulinTypeEl, bolusCarbsPerLiterEl, bolusVolumeEl, bolusFeedsPerDayEl, carbsPerUnitEl].forEach(el => {
+            el.addEventListener('input', () => {
+                applyFormulaSelection();
+                calculate();
+            });
+        });
+        feedTypeEl.addEventListener('change', updateVisibility);
+        formulaSelectEl.addEventListener('change', updateVisibility);
+
+        // Initialize
+        updateVisibility();
+    </script>
+</body>
+
+</html>
