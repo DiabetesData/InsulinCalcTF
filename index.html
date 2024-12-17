@@ -41,7 +41,6 @@
             width: 100%;
             padding: 0.3rem;
             text-align: right;
-            text-align-last: right;
         }
 
         /* Remove the right alignment from select text */
@@ -119,7 +118,7 @@
             </div>
 
             <div class="field-row">
-                <label>Carbs/segment</label>
+                <label>Carbs/insulin period</label>
                 <input type="text" id="carbs-per-segment" class="calculated" readonly />
             </div>
         </div>
@@ -132,7 +131,7 @@
 
             <div class="field-row">
                 <label for="bolus-volume">Vol (L)</label>
-                <input type="number" id="bolus-volume" step="0.1" />
+                <input type="number" id="bolus-volume" step="1" />
             </div>
 
             <div class="field-row">
@@ -142,19 +141,19 @@
 
             <div class="field-row">
                 <label>Carbs/Bolus</label>
-                <input type="text" id="carbs-per-bolus" class="calculated" readonly />
+                <input type="text" id="carbs-per-bolus" class="calculated" />
             </div>
         </div>
 
         <div class="section">
             <div class="field-row">
-                <label for="carbs-per-unit">g Carb/unit</label>
-                <input type="number" id="carbs-per-unit" step="0.1" value="15" />
+                <label for="carbs-per-unit">Carbs/Unit</label>
+                <input type="number" id="carbs-per-unit" step="1" value="15" />
             </div>
 
             <div class="field-row">
                 <label>Insulin Bolus</label>
-                <input type="text" id="insulin-bolus" class="calculated" readonly />
+                <input type="text" id="insulin-bolus" />
             </div>
 
             <div class="field-row">
@@ -288,6 +287,30 @@
             totalDailyBolusInsulinEl.value = totalDailyBolusInsulin;
         }
 
+        // if a user modifies the carbs per bolus field (which is usually calculated),
+        // then we will calculate a new carbs per unit value that can be used going forward
+        // Note that to do this requires knowing how many grams of carbs there are per bolus or per segment
+        // (depending on continuous or bolus feeding)
+        function calculateCarbsPerUnit() {
+            const feedType = feedTypeEl.value;
+            let carbs;
+
+            if (feedType === 'bolus') {
+                carbs = parseFloat(carbsPerBolusEl.value);
+            } else {
+                carbs = parseFloat(carbsPerSegmentEl.value);
+            }
+
+            const insulinBolus = parseFloat(insulinBolusEl.value);
+
+            if (!isNaN(carbs) && !isNaN(insulinBolus) && insulinBolus > 0) {
+                const carbsPerUnit = carbs / insulinBolus;
+                carbsPerUnitEl.value = carbsPerUnit.toFixed(2);
+            } else {
+                carbsPerUnitEl.value = '';
+            }
+        }
+
         // Event listeners
         [formulaSelectEl, feedTypeEl, carbsPerLiterEl, rateEl, feedHoursEl, insulinTypeEl, bolusCarbsPerLiterEl, bolusVolumeEl, bolusFeedsPerDayEl, carbsPerUnitEl].forEach(el => {
             el.addEventListener('input', () => {
@@ -297,6 +320,19 @@
         });
         feedTypeEl.addEventListener('change', updateVisibility);
         formulaSelectEl.addEventListener('change', updateVisibility);
+        // Debounce function to delay execution
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+        // Add a listener for when a user changes the insulin bolus field with debouncing
+        insulinBolusEl.addEventListener('input', debounce(() => {
+            calculateCarbsPerUnit();
+            calculate();
+        }, 500));
 
         // Initialize
         updateVisibility();
